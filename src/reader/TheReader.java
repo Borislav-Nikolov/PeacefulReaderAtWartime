@@ -1,11 +1,11 @@
 package reader;
 
-import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.*;
 import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 class TheReader {
     private static class Counter implements Runnable {
@@ -51,27 +51,27 @@ class TheReader {
 
     static void processText(String filePath, int numberOfThreads, String word1, String word2) {
         long start = System.currentTimeMillis();
-        File file = new File(filePath);
-        StringBuilder builder = new StringBuilder();
         ExecutorService executor = Executors.newFixedThreadPool(numberOfThreads);
-        try (Scanner sc = new Scanner(file)) {
-            while (sc.hasNextLine()) {
-                builder.append("\n").append(sc.nextLine());
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+            StringBuilder allText = new StringBuilder();
+            String line;
+            while ((line = br.readLine()) != null) {
+                allText.append("\n").append(line);
             }
             int partStart = 0;
-            int partEnd = builder.length() / numberOfThreads;
-            while (partEnd < builder.length()) {
-                while (!(partEnd > builder.length()) && builder.charAt(partEnd) != ' ') {
+            int partEnd = allText.length() / numberOfThreads;
+            while (partEnd < allText.length()) {
+                while (!(partEnd > allText.length()) && allText.charAt(partEnd) != ' ') {
                     partEnd++;
                 }
-                String text = builder.substring(partStart, partEnd);
+                String text = allText.substring(partStart, partEnd);
                 executor.execute(new Counter(text, word1, word2));
                 partStart = partEnd;
                 partEnd *= 2;
             }
-            String text = builder.substring(partStart);
+            String text = allText.substring(partStart);
             executor.execute(new Counter(text, word1, word2));
-        } catch (FileNotFoundException ex) {
+        } catch (IOException ex) {
             System.out.println("File not found.");
         }
         executor.shutdown();
