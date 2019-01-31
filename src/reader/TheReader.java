@@ -131,6 +131,7 @@ class TheReader {
     }
     private static void addWordsToMap(String line) {
         line = line.replaceAll("[\\pP]", " ");
+        line = line.replaceAll("[\\d+]", " ");
         line = line.replaceAll(" +", " ").trim();
         String[] words = line.split( " ");
         for (String word : words) {
