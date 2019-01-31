@@ -5,9 +5,12 @@ import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Stream;
 
 class TheReader {
+    private static AtomicInteger word1Counter = new AtomicInteger(0);
+    private static AtomicInteger word2Counter = new AtomicInteger(0);
+    private static AtomicInteger commaCounter = new AtomicInteger(0);
+
     private static class Counter implements Runnable {
         private String text;
         private String word1;
@@ -45,9 +48,6 @@ class TheReader {
             }
         }
     }
-    private static AtomicInteger word1Counter = new AtomicInteger(0);
-    private static AtomicInteger word2Counter = new AtomicInteger(0);
-    private static AtomicInteger commaCounter = new AtomicInteger(0);
 
     static void processText(String filePath, int numberOfThreads, String word1, String word2) {
         long start = System.currentTimeMillis();
@@ -76,7 +76,7 @@ class TheReader {
         }
         executor.shutdown();
         while (!executor.isTerminated()) {
-
+            Thread.yield();
         }
         System.out.println("Word 1 occurrence: " + word1Counter);
         System.out.println("Word 2 occurrence: " + word2Counter);
