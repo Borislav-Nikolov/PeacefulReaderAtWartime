@@ -53,34 +53,36 @@ class TheReader {
         }
     }
 
-    static void processText(String filePath, int numberOfThreads, String word1, String word2) {
+    static void processText(String filePath, int numberOfThreads, String word1, String word2) throws IOException {
         long start = System.currentTimeMillis();
         ExecutorService executor = Executors.newFixedThreadPool(numberOfThreads);
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
-            StringBuilder allText = new StringBuilder();
-            String line;
-            while ((line = br.readLine()) != null) {
-                allText.append("\n").append(line);
-            }
-            int partStart = 0;
-            int partEnd = allText.length() / numberOfThreads;
-            while (partEnd < allText.length()) {
-                while (!(partEnd > allText.length()) && allText.charAt(partEnd) != ' ') {
-                    partEnd++;
-                }
-                String text = allText.substring(partStart, partEnd);
-                executor.execute(new Counter(text, word1, word2));
-                partStart = partEnd;
-                partEnd *= 2;
-            }
-            String text = allText.substring(partStart);
-            executor.execute(new Counter(text, word1, word2));
-        } catch (IOException ex) {
-            System.out.println("File not found.");
+        BufferedReader br = new BufferedReader(new FileReader(filePath));
+        StringBuilder allText = new StringBuilder();
+        String line;
+        while ((line = br.readLine()) != null) {
+            allText.append("\n").append(line);
         }
+        int partRange = allText.length() / numberOfThreads;
+        int partStart = 0;
+        int partEnd = partRange;
+        while (partEnd < allText.length()) {
+            while (!(partEnd > allText.length()) && allText.charAt(partEnd) != ' ') {
+                partEnd++;
+            }
+            String text = allText.substring(partStart, partEnd);
+            executor.execute(new Counter(text, word1, word2));
+            partStart = partEnd;
+            partEnd = partStart + partRange;
+        }
+        String text = allText.substring(partStart);
+        executor.execute(new Counter(text, word1, word2));
         executor.shutdown();
         while (!executor.isTerminated()) {
-            Thread.yield();
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException ex) {
+                System.out.println(ex.getMessage());
+            }
         }
         for (Map.Entry<String, Integer> wordsCount : allWordsCount.entrySet()) {
             System.out.println(wordsCount.getKey() + " - " + wordsCount.getValue());
@@ -142,16 +144,13 @@ class TheReader {
         }
     }
 
-    private static void createFilesForDiffWordLength() {
+    private static void createFilesForDiffWordLength() throws IOException {
         for (String word : allWordsCount.keySet()) {
             String fileName = "" + word.length() + "-letterWords.txt";
             File file = new File(fileName);
-            try (FileWriter fw = new FileWriter(file, true)) {
-                fw.write(word);
-                fw.write(String.format("%n"));
-            } catch (IOException ex) {
-                System.out.println("Something went wrong: " + ex.getMessage());
-            }
+            FileWriter fw = new FileWriter(file, true);
+            fw.write(word);
+            fw.write(String.format("%n"));
         }
     }
 }
