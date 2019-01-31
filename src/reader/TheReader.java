@@ -1,7 +1,5 @@
 package reader;
 
-import jdk.nashorn.api.tree.RegExpLiteralTree;
-
 import java.io.*;
 import java.util.Map;
 import java.util.Scanner;
@@ -90,6 +88,7 @@ class TheReader {
         System.out.println("Word 1 occurrence: " + word1Counter);
         System.out.println("Word 2 occurrence: " + word2Counter);
         System.out.println("Commas: " + commaCounter);
+        createFilesForDiffWordLength();
         System.out.println(System.currentTimeMillis() - start);
 
     }
@@ -139,6 +138,19 @@ class TheReader {
                 allWordsCount.put(word, 0);
             }
             allWordsCount.put(word, allWordsCount.get(word) + 1);
+        }
+    }
+
+    private static void createFilesForDiffWordLength() {
+        for (String word : allWordsCount.keySet()) {
+            String fileName = "" + word.length() + "-letterWords.txt";
+            File file = new File(fileName);
+            try (FileWriter fw = new FileWriter(file, true)) {
+                fw.write(word);
+                fw.write(String.format("%n"));
+            } catch (IOException ex) {
+                System.out.println("Something went wrong: " + ex.getMessage());
+            }
         }
     }
 }
