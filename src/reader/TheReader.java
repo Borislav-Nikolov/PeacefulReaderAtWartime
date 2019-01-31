@@ -1,7 +1,11 @@
 package reader;
 
+import jdk.nashorn.api.tree.RegExpLiteralTree;
+
 import java.io.*;
+import java.util.Map;
 import java.util.Scanner;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -10,6 +14,7 @@ class TheReader {
     private static AtomicInteger word1Counter = new AtomicInteger(0);
     private static AtomicInteger word2Counter = new AtomicInteger(0);
     private static AtomicInteger commaCounter = new AtomicInteger(0);
+    private static ConcurrentHashMap<String, Integer> allWordsCount = new ConcurrentHashMap<>();
 
     private static class Counter implements Runnable {
         private String text;
@@ -26,6 +31,7 @@ class TheReader {
             while (reader.hasNextLine()) {
                 String line = reader.nextLine();
                 String lowCase = line.toLowerCase();
+                addWordsToMap(lowCase);
                 int word1Counter = 0;
                 int word2Counter = 0;
                 int commaCounter = 0;
@@ -78,6 +84,9 @@ class TheReader {
         while (!executor.isTerminated()) {
             Thread.yield();
         }
+        for (Map.Entry<String, Integer> wordsCount : allWordsCount.entrySet()) {
+            System.out.println(wordsCount.getKey() + " - " + wordsCount.getValue());
+        }
         System.out.println("Word 1 occurrence: " + word1Counter);
         System.out.println("Word 2 occurrence: " + word2Counter);
         System.out.println("Commas: " + commaCounter);
@@ -98,14 +107,14 @@ class TheReader {
                 int indexAfterWord = wordIdx + word.length();
                 if (wordIdx != 0 &&
                         // check if former character is not a letter
-                        Character.toString(line.charAt(wordIdx - 1)).matches("\\p{L}+")) {
+                        Character.toString(line.charAt(wordIdx - 1)).matches("[\\p{L}+]")) {
                     line = removeWord(line, wordIdx, indexAfterWord);
                     continue;
                 }
                 // and, unless word is the last word,
                 if (indexAfterWord != line.length() &&
                         // check if next character is not a letter;
-                        Character.toString(line.charAt(indexAfterWord)).matches("\\p{L}+")) {
+                        Character.toString(line.charAt(indexAfterWord)).matches("[\\p{L}+]")) {
                     line = removeWord(line, wordIdx, indexAfterWord);
                     continue;
                 }
@@ -120,5 +129,16 @@ class TheReader {
 
     private static String removeWord(String string, int wordIdx, int indexAfterWord) {
         return string.substring(0, wordIdx).concat(string.substring(indexAfterWord));
+    }
+    private static void addWordsToMap(String line) {
+        line = line.replaceAll("[\\pP]", " ");
+        line = line.replaceAll(" +", " ").trim();
+        String[] words = line.split( " ");
+        for (String word : words) {
+            if (!allWordsCount.containsKey(word)) {
+                allWordsCount.put(word, 0);
+            }
+            allWordsCount.put(word, allWordsCount.get(word) + 1);
+        }
     }
 }
