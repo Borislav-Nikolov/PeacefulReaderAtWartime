@@ -29,7 +29,11 @@ class TheReader {
             while (reader.hasNextLine()) {
                 String line = reader.nextLine();
                 String lowCase = line.toLowerCase();
-                addWordsToMap(lowCase);
+                try {
+                    addWordsToMap(lowCase);
+                } catch (IOException ex) {
+                    System.out.println(ex.getMessage());
+                }
                 int word1Counter = 0;
                 int word2Counter = 0;
                 int commaCounter = 0;
@@ -54,6 +58,7 @@ class TheReader {
     }
 
     static void processText(String filePath, int numberOfThreads, String word1, String word2) throws IOException {
+        deletePreviousResults();
         long start = System.currentTimeMillis();
         ExecutorService executor = Executors.newFixedThreadPool(numberOfThreads);
         BufferedReader br = new BufferedReader(new FileReader(filePath));
@@ -90,7 +95,6 @@ class TheReader {
         System.out.println("Word 1 occurrence: " + word1Counter);
         System.out.println("Word 2 occurrence: " + word2Counter);
         System.out.println("Commas: " + commaCounter);
-        createFilesForDiffWordLength();
         System.out.println(System.currentTimeMillis() - start);
 
     }
@@ -131,26 +135,44 @@ class TheReader {
     private static String removeWord(String string, int wordIdx, int indexAfterWord) {
         return string.substring(0, wordIdx).concat(string.substring(indexAfterWord));
     }
-    private static void addWordsToMap(String line) {
-        line = line.replaceAll("[\\pP]", " ");
-        line = line.replaceAll("[\\d+]", " ");
+
+    private static void addWordsToMap(String line) throws IOException {
+        line = line.replaceAll("[^\\p{IsAlphabetic}]", " "); // може и "[^\\p{IsCyrillic}]"
         line = line.replaceAll(" +", " ").trim();
         String[] words = line.split( " ");
         for (String word : words) {
+            if (word.length() == 0 || word.equals("\n")) {
+                continue;
+            }
             if (!allWordsCount.containsKey(word)) {
                 allWordsCount.put(word, 0);
+                createFilesForDiffWordLength(word);
             }
             allWordsCount.put(word, allWordsCount.get(word) + 1);
         }
     }
 
-    private static void createFilesForDiffWordLength() throws IOException {
-        for (String word : allWordsCount.keySet()) {
-            String fileName = "" + word.length() + "-letterWords.txt";
+    private static void createFilesForDiffWordLength(String word) throws IOException {
+        String fileName = "" + word.length() + "-letterWords.txt";
+        fileName = fileName.intern();
+        synchronized (fileName) {
             File file = new File(fileName);
-            FileWriter fw = new FileWriter(file, true);
-            fw.write(word);
-            fw.write(String.format("%n"));
+            PrintStream ps = new PrintStream(new FileOutputStream(file, true));
+            ps.append(word);
+            ps.append('\n');
+        }
+    }
+
+    private static void deletePreviousResults() {
+        File mainDir = new File(".");
+        File[] allFiles = mainDir.listFiles();
+        if (allFiles == null) {
+            return;
+        }
+        for (File file : allFiles) {
+            if (file.getName().contains("-letterWords.txt")) {
+                file.delete();
+            }
         }
     }
 }
